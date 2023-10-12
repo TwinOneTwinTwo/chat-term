@@ -1,41 +1,92 @@
 #! /usr/bin/env python
+#README -- To run this python program you need to have the following modules installed:
+# 1.  Python 3.6 or higher
+# 2.  openai    #a python library for interfacing with the OpenAI API
+# 3.  pyfzf     #a python library for fuzzy searching
+# 4.  rich      #a pyton library for rich text and beautiful formatting
+# 5.  pyperclip #a python library for copy and pasting to clipboard
+# 6.  dotenv    #a python library for loading environment variables from .env file
+# 7.  sys       #a python library for system-specific parameters and functions
+# 8.  os        #a python library for interacting with the operating system
+# 9.  threading #a python library for threading
+# 10. time      #a python library for time
+
 import os
 import sys
 import threading
 import time
-import readline
-import rlcompleter  # Import the rlcompleter module
+import pyperclip
 import openai
-from colorama import Fore, Style
+from rich.console import Console
+from rich.panel import Panel
+from rich.markdown import Markdown
+from pyfzf import FzfPrompt
 
-model_id = "gpt-3.5-turbo-16k"
+console = Console()
+fzf = FzfPrompt()
 
-# Enable readline for tab completion
-readline.parse_and_bind("tab: complete")
+# Display hourglass animation
+def hourglass_animation():
+    console.print("Searching for pattern in all directories...")
+    symbols = ["⌛", "⏳"]
+    while not stop_animation_event.is_set():
+        for symbol in symbols:
+            sys.stdout.write(f"\r{symbol} Awaiting response...")
+            sys.stdout.flush()
+            time.sleep(0.5)
 
+# Prompt user for a file pattern using fzf
+def get_file_pattern():
+    while True:
+        pattern = input("Enter a file pattern: ")
+        if pattern:
+            return pattern
 
-# Set the autocomplete function
-def complete_path(text, state):
-    """Auto-complete the file path."""
-    return [path for path in os.listdir() if path.startswith(text)][state]
+# Prompt user to select a file using fzf
+def select_file(pattern):
+    # Set the base_path to the user's home folder
+    base_path = os.path.expanduser("~")
 
+    # Recursively search for files in all directories matching the pattern
+    all_files = []
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if pattern in file:
+                all_files.append(os.path.join(root, file))
 
-# Create a custom Completer class
-class Completer(rlcompleter.Completer):
-    def complete(self, text, state):
-        if text.startswith(
-            "/"
-        ):  # If the input starts with "/", use the file path completer
-            return complete_path(text[1:], state)
-        else:  # Use the default completer for other cases
-            return super().complete(text, state)
+    # Use fzf to select one of the files
+    selected_files = fzf.prompt(all_files, "--preview 'ls -l {}' --preview-window up:50%:wrap")
 
+    if not selected_files:
+        console.print("No file selected.", style="bold red")
+        return ""
 
-# Set the completion function for readline using the custom Completer class
-readline.set_completer(Completer().complete)
+    file_path = selected_files[0]
 
+    console.print("Selected file:")
+    console.print(Panel(file_path, title="File Path", border_style="bold cyan"))
 
-def chatGPT_conversation(conversation):
+    # Copy selected file path to clipboard
+    pyperclip.copy(file_path)
+    console.print("The file path has been copied to the clipboard.", style="bold cyan")
+
+    # Print the selected file path and provide an opportunity for edits
+    while True:
+        file_path_edit = input("Edit file path if necessary, or press enter to confirm: ").strip()
+        if file_path_edit:
+            file_path = file_path_edit
+            break
+        elif pyperclip.paste():
+            file_path = pyperclip.paste().strip()
+            console.print(f"Using clipboard file path: {file_path}\n")
+            break
+        else:
+            break
+
+    return file_path
+
+# Generate chat response using OpenAI API
+def chatGPT_conversation(model_id, conversation):
     openai.api_key = os.getenv("OPENAI_API_KEY")
     response = openai.ChatCompletion.create(model=model_id, messages=conversation)
     conversation.append(
@@ -46,85 +97,99 @@ def chatGPT_conversation(conversation):
     )
     return conversation
 
-
-def read_file_content(file_path):
+# Ask which model to use
+while True:
     try:
-        with open(file_path, "r") as file:
-            return file.read()
-    except FileNotFoundError:
-        print(f"Error: File {file_path} not found.")
-        return ""
-
-
-def hourglass_animation():
-    symbols = ["⌛", "⏳"]
-    while not stop_animation_event.is_set():
-        for symbol in symbols:
-            sys.stdout.write(f"\r{symbol} Awaiting response...")
-            sys.stdout.flush()
-            time.sleep(0.5)
-
+        model_id = int(input("Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive ': "))
+        if model_id == 1:
+            model_id = "gpt-3.5-turbo-16k"
+            break
+        elif model_id == 2:
+            model_id = "gpt-4"
+            break
+        else:
+            console.print("Invalid choice. Please enter 1 or 2.", style="bold red")
+    except ValueError:
+        console.print("Invalid choice. Please enter a number.", style="bold red")
 
 conversation = []
 conversation.append({"role": "system", "content": "How may I help you?"})
-conversation = chatGPT_conversation(conversation)
-print(
+
+# Generate initial response from the chosen model
+conversation = chatGPT_conversation(model_id, conversation)
+
+# Print the initial response
+console.print(
     "{0}: {1}\n".format(
         conversation[-1]["role"].strip(), conversation[-1]["content"].strip()
-    )
+    ),
+    style="bold cyan",
 )
 
+# Main interaction loop
 while True:
-    action = input(
-        "Do you want to (1) Enter multiline input or (2) Read from a file? (Enter 1 or 2): "
-    )
+    # Prompt the user to choose an action
+    while True:
+        try:
+            action = int(
+                input(
+                    "Do you want to (1) Enter multiline input, (2) Select a file or (3) Quit? "
+                )
+            )
+            if action < 1 or action > 3:
+                console.print("Invalid choice. Please enter 1, 2, or 3.", style="bold red")
+            else:
+                break
+        except ValueError:
+            console.print("Invalid choice. Please enter a number.", style="bold red")
 
-    if action == "1":
+    if action == 1:
         prompt = ""
-        print(
-            f"{Fore.RED}Enter your query{Style.RESET_ALL} (Press Enter then 'Ctrl + D' to submit): "
-        )
+        console.print(f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red")
         try:
             while True:
                 line = input()
                 prompt += line + "\n"
         except EOFError:
             pass
-        except KeyboardInterrupt:
-            print(f"{Fore.YELLOW}Exiting program.{Style.RESET_ALL}")
-            sys.exit()
-    elif action == "2":
-        # Enable the completer for file paths
-        readline.set_completer(complete_path)
-        file_path = input("Enter the path to the file: ")
-        prompt = read_file_content(file_path)
-        # Disable the completer after reading the file
-        readline.set_completer(None)
-        if (
-            not prompt
-        ):  # If the prompt is empty (due to file error), continue to the next iteration
-            continue
-    else:
-        print("Invalid choice. Please enter 1 or 2.")
-        continue
 
+    elif action == 2:
+        # Prompt the user for a file pattern
+        pattern = get_file_pattern()
+
+        console.print("Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ", style="bold red")
+        file_path = select_file(pattern)
+        prompt = ""
+
+        if os.path.isfile(file_path):
+            with open(file_path, "r") as file:
+                prompt = file.read()
+            if prompt == "":
+                console.print("File content is empty.", style="bold red")
+        elif file_path != "":
+            console.print(f"Error: File {file_path} not found.", style="bold red")
+            continue
+
+    elif action == 3:
+        # Quit the program
+        console.print("Quitting program...", style="bold red")
+        break
+
+    # Append user's input to the conversation list
     conversation.append({"role": "user", "content": prompt})
 
-    # Start the hourglass animation
+    # Initialize the hourglass animation
     stop_animation_event = threading.Event()
     animation_thread = threading.Thread(target=hourglass_animation)
     animation_thread.start()
 
-    conversation = chatGPT_conversation(conversation)
+    # Generate response from the OpenAI model
+    conversation = chatGPT_conversation(model_id, conversation)
 
     # Stop the hourglass animation
     stop_animation_event.set()
     animation_thread.join()
 
-    print(f"{Fore.YELLOW}OpenAI response:{Style.RESET_ALL}")
-    print(
-        "{0}: {1}\n".format(
-            f"{Fore.LIGHTBLUE_EX}{conversation[-1]['role'].strip()}{Style.RESET_ALL}",
-            f"{Fore.CYAN + Style.BRIGHT}{conversation[-1]['content'].strip()}{Style.RESET_ALL}",
-        )
-    )
+    # Print the OpenAI response
+    console.print("OpenAI response:", style="bold yellow")
+    console.print(Panel(Markdown(f"{conversation[-1]['content'].strip()}\n"), title="OpenAI Response", border_style="bold cyan"))
