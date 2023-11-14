@@ -24,6 +24,7 @@ from pyfzf import FzfPrompt
 
 console = Console()
 fzf = FzfPrompt()
+openai.api_key = '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'
 
 # Display hourglass animation
 def hourglass_animation():
@@ -87,7 +88,7 @@ def select_file(pattern):
 
 # Generate chat response using OpenAI API
 def chatGPT_conversation(model_id, conversation):
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
     response = openai.ChatCompletion.create(model=model_id, messages=conversation)
     conversation.append(
         {
@@ -107,8 +108,11 @@ while True:
         elif model_id == 2:
             model_id = "gpt-4"
             break
+        elif model_id == 3:
+            model_id = "dall-e-3"
+            break
         else:
-            console.print("Invalid choice. Please enter 1 or 2.", style="bold red")
+            console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
     except ValueError:
         console.print("Invalid choice. Please enter a number.", style="bold red")
 
