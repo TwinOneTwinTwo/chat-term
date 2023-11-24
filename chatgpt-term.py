@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-#README -- To run this python program you need to have the following modules installed:
+# README -- To run this python program you need to have the following modules installed:
 # 1.  Python 3.6 or higher
 # 2.  openai    #a python library for interfacing with the OpenAI API
 # 3.  pyfzf     #a python library for fuzzy searching
@@ -16,7 +16,11 @@ import sys
 import threading
 import time
 import pyperclip
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key="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")
+import logging
+from dalle3 import Dalle
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
@@ -24,7 +28,9 @@ from pyfzf import FzfPrompt
 
 console = Console()
 fzf = FzfPrompt()
-openai.api_key = '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'
+
+
+
 
 # Display hourglass animation
 def hourglass_animation():
@@ -36,12 +42,14 @@ def hourglass_animation():
             sys.stdout.flush()
             time.sleep(0.5)
 
+
 # Prompt user for a file pattern using fzf
 def get_file_pattern():
     while True:
         pattern = input("Enter a file pattern: ")
         if pattern:
             return pattern
+
 
 # Prompt user to select a file using fzf
 def select_file(pattern):
@@ -56,7 +64,9 @@ def select_file(pattern):
                 all_files.append(os.path.join(root, file))
 
     # Use fzf to select one of the files
-    selected_files = fzf.prompt(all_files, "--preview 'ls -l {}' --preview-window up:50%:wrap")
+    selected_files = fzf.prompt(
+        all_files, "--preview 'ls -l {}' --preview-window up:50%:wrap"
+    )
 
     if not selected_files:
         console.print("No file selected.", style="bold red")
@@ -73,7 +83,9 @@ def select_file(pattern):
 
     # Print the selected file path and provide an opportunity for edits
     while True:
-        file_path_edit = input("Edit file path if necessary, or press enter to confirm: ").strip()
+        file_path_edit = input(
+            "Edit file path if necessary, or press enter to confirm: "
+        ).strip()
         if file_path_edit:
             file_path = file_path_edit
             break
@@ -86,10 +98,11 @@ def select_file(pattern):
 
     return file_path
 
+
 # Generate chat response using OpenAI API
 def chatGPT_conversation(model_id, conversation):
-    #openai.api_key = os.getenv("OPENAI_API_KEY")
-    response = openai.ChatCompletion.create(model=model_id, messages=conversation)
+    # openai.api_key = os.getenv("OPENAI_API_KEY")
+    response = client.chat.completions.create(model=model_id, messages=conversation)
     conversation.append(
         {
             "role": response.choices[0].message.role,
@@ -98,10 +111,15 @@ def chatGPT_conversation(model_id, conversation):
     )
     return conversation
 
+
 # Ask which model to use
 while True:
     try:
-        model_id = int(input("Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive ': "))
+        model_id = int(
+            input(
+                "Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive' or (3) 'dall-e' : "
+            )
+        )
         if model_id == 1:
             model_id = "gpt-3.5-turbo-16k"
             break
@@ -109,7 +127,7 @@ while True:
             model_id = "gpt-4"
             break
         elif model_id == 3:
-            model_id = "dall-e-3"
+            model_id = "dall-e-2"
             break
         else:
             console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
@@ -141,7 +159,9 @@ while True:
                 )
             )
             if action < 1 or action > 3:
-                console.print("Invalid choice. Please enter 1, 2, or 3.", style="bold red")
+                console.print(
+                    "Invalid choice. Please enter 1, 2, or 3.", style="bold red"
+                )
             else:
                 break
         except ValueError:
@@ -149,7 +169,9 @@ while True:
 
     if action == 1:
         prompt = ""
-        console.print(f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red")
+        console.print(
+            f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red"
+        )
         try:
             while True:
                 line = input()
@@ -161,7 +183,10 @@ while True:
         # Prompt the user for a file pattern
         pattern = get_file_pattern()
 
-        console.print("Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ", style="bold red")
+        console.print(
+            "Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ",
+            style="bold red",
+        )
         file_path = select_file(pattern)
         prompt = ""
 
@@ -196,4 +221,30 @@ while True:
 
     # Print the OpenAI response
     console.print("OpenAI response:", style="bold yellow")
-    console.print(Panel(Markdown(f"{conversation[-1]['content'].strip()}\n"), title="OpenAI Response", border_style="bold cyan"))
+    console.print(
+        Panel(
+            Markdown(f"{conversation[-1]['content'].strip()}\n"),
+            title="OpenAI Response",
+            border_style="bold cyan",
+        )
+    )
+
+# Define cookie using env or empty string
+    cookie = ""
+
+# Set up logging
+
+
+# Instantiate the Dalle class with your cookie value
+    dalle = Dalle(cookie)
+
+# Open the website with your query
+    dalle.create(
+    "Fish hivemind swarm in light blue avatar anime in zen garden pond concept art anime art, happy fish"
+)
+
+# Get the image URLs
+    urls = dalle.get_urls()
+
+# Download the images to your specified folder
+    dalle.download(urls, "images/")
