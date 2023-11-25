@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # README -- To run this python program you need to have the following modules installed:
-# 1.  Python 3.6 or higher
+# 1.  Python 3.9 or higher
 # 2.  openai    #a python library for interfacing with the OpenAI API
 # 3.  pyfzf     #a python library for fuzzy searching
 # 4.  rich      #a pyton library for rich text and beautiful formatting
@@ -12,24 +12,160 @@
 # 10. time      #a python library for time
 
 import os
+import logging
 import sys
 import threading
 import time
 import pyperclip
 from openai import OpenAI
-
-client = OpenAI(api_key="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")
-import logging
-from dalle3 import Dalle
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from pyfzf import FzfPrompt
 
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+logging.info("OpenAI API Key: {0}".format(os.environ["OPENAI_API_KEY"]))
+
 console = Console()
 fzf = FzfPrompt()
+stop_animation_event = threading.Event()
+
+# Define cookie using env or empty string
+cookie = ""
+
+# Set up logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("chatgpt-term.log"), logging.StreamHandler()],
+)
 
 
+# Ask which model to use
+def kickoff():
+    logging.info("Starting chatgpt-term.py")
+    while True:
+        try:
+            model_id = int(
+                input(
+                    "Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive' or (3) 'dall-e' : "
+                )
+            )
+            if model_id == 1:
+                model_id = "gpt-3.5-turbo-16k"
+                break
+            elif model_id == 2:
+                model_id = "gpt-4"
+                break
+            elif model_id == 3:
+                model_id = "dall-e-3"
+                break
+            else:
+                console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
+        except ValueError:
+            console.print("Invalid choice. Please enter a number.", style="bold red")
+
+    conversation = []
+    conversation.append({"role": "system", "content": "How may I help you?"})
+
+    # Generate initial response from the chosen model
+    if model_id == "dall-e-3":
+       pass
+    else:
+        conversation = chatGPT_conversation(model_id, conversation)
+
+    # Print the initial response
+    console.print(
+        "{0}: {1}\n".format(
+            conversation[-1]["role"].strip(), conversation[-1]["content"].strip()
+        ),
+        style="bold cyan",
+    )
+
+    # Main interaction loop
+    while True:
+        # Prompt the user to choose an action
+        while True:
+            try:
+                action = int(
+                    input(
+                        "Do you want to (1) Enter multiline input, (2) Select a file or (3) Quit? "
+                    )
+                )
+                if action < 1 or action > 3:
+                    console.print(
+                        "Invalid choice. Please enter 1, 2, or 3.", style="bold red"
+                    )
+                else:
+                    break
+            except ValueError:
+                console.print("Invalid choice. Please enter a number.", style="bold red")
+
+        if action == 1:
+            prompt = ""
+            console.print(
+                f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red"
+            )
+            try:
+                while True:
+                    line = input()
+                    prompt += line + "\n"
+            except EOFError:
+                pass
+
+        elif action == 2:
+            # Prompt the user for a file pattern
+            pattern = get_file_pattern()
+
+            console.print(
+                "Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ",
+                style="bold red",
+            )
+            file_path = select_file(pattern)
+            prompt = ""
+
+            if os.path.isfile(file_path):
+                with open(file_path, "r") as file:
+                    prompt = file.read()
+                if prompt == "":
+                    console.print("File content is empty.", style="bold red")
+            elif file_path != "":
+                console.print(f"Error: File {file_path} not found.", style="bold red")
+                continue
+
+        elif action == 3:
+            # Quit the program
+            console.print("Quitting program...", style="bold red")
+            break
+
+        # Append user's input to the conversation list
+        conversation.append({"role": "user", "content": prompt})
+
+        # Initialize the hourglass animation
+        
+        animation_thread = threading.Thread(target=hourglass_animation)
+        animation_thread.start()
+
+        # Generate response from the OpenAI model
+        if model_id == "dall-e-3":
+            dalle_conversation(conversation)
+        else:
+            conversation = chatGPT_conversation(model_id, conversation)
+
+        # Stop the hourglass animation
+        stop_animation_event.set()
+        animation_thread.join()
+
+        # Print the OpenAI response
+        console.print("OpenAI response:", style="bold yellow")
+        console.print(
+            Panel(
+                Markdown(f"{conversation[-1]['content'].strip()}\n"),
+                title="OpenAI Response",
+                border_style="bold cyan",
+            )
+        )
+    
 
 
 # Display hourglass animation
@@ -112,139 +248,17 @@ def chatGPT_conversation(model_id, conversation):
     return conversation
 
 
-# Ask which model to use
-while True:
-    try:
-        model_id = int(
-            input(
-                "Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive' or (3) 'dall-e' : "
-            )
-        )
-        if model_id == 1:
-            model_id = "gpt-3.5-turbo-16k"
-            break
-        elif model_id == 2:
-            model_id = "gpt-4"
-            break
-        elif model_id == 3:
-            model_id = "dall-e-2"
-            break
-        else:
-            console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
-    except ValueError:
-        console.print("Invalid choice. Please enter a number.", style="bold red")
-
-conversation = []
-conversation.append({"role": "system", "content": "How may I help you?"})
-
-# Generate initial response from the chosen model
-conversation = chatGPT_conversation(model_id, conversation)
-
-# Print the initial response
-console.print(
-    "{0}: {1}\n".format(
-        conversation[-1]["role"].strip(), conversation[-1]["content"].strip()
-    ),
-    style="bold cyan",
-)
-
-# Main interaction loop
-while True:
-    # Prompt the user to choose an action
-    while True:
-        try:
-            action = int(
-                input(
-                    "Do you want to (1) Enter multiline input, (2) Select a file or (3) Quit? "
-                )
-            )
-            if action < 1 or action > 3:
-                console.print(
-                    "Invalid choice. Please enter 1, 2, or 3.", style="bold red"
-                )
-            else:
-                break
-        except ValueError:
-            console.print("Invalid choice. Please enter a number.", style="bold red")
-
-    if action == 1:
-        prompt = ""
-        console.print(
-            f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red"
-        )
-        try:
-            while True:
-                line = input()
-                prompt += line + "\n"
-        except EOFError:
-            pass
-
-    elif action == 2:
-        # Prompt the user for a file pattern
-        pattern = get_file_pattern()
-
-        console.print(
-            "Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ",
-            style="bold red",
-        )
-        file_path = select_file(pattern)
-        prompt = ""
-
-        if os.path.isfile(file_path):
-            with open(file_path, "r") as file:
-                prompt = file.read()
-            if prompt == "":
-                console.print("File content is empty.", style="bold red")
-        elif file_path != "":
-            console.print(f"Error: File {file_path} not found.", style="bold red")
-            continue
-
-    elif action == 3:
-        # Quit the program
-        console.print("Quitting program...", style="bold red")
-        break
-
-    # Append user's input to the conversation list
-    conversation.append({"role": "user", "content": prompt})
-
-    # Initialize the hourglass animation
-    stop_animation_event = threading.Event()
-    animation_thread = threading.Thread(target=hourglass_animation)
-    animation_thread.start()
-
-    # Generate response from the OpenAI model
-    conversation = chatGPT_conversation(model_id, conversation)
-
-    # Stop the hourglass animation
-    stop_animation_event.set()
-    animation_thread.join()
-
-    # Print the OpenAI response
-    console.print("OpenAI response:", style="bold yellow")
-    console.print(
-        Panel(
-            Markdown(f"{conversation[-1]['content'].strip()}\n"),
-            title="OpenAI Response",
-            border_style="bold cyan",
-        )
-    )
-
-# Define cookie using env or empty string
-    cookie = ""
-
-# Set up logging
+def dalle_conversation(conversation):
+    img_params = {
+        "model": "dall-e-3",
+        "prompt": conversation[-1]["content"],
+        "user" : conversation[-1]["role"],
+        "size": "1024x1024",
+        "n": 1
+        }
+    res = client.images.generate(**img_params)
+    console.print(res.model_dump())
 
 
-# Instantiate the Dalle class with your cookie value
-    dalle = Dalle(cookie)
-
-# Open the website with your query
-    dalle.create(
-    "Fish hivemind swarm in light blue avatar anime in zen garden pond concept art anime art, happy fish"
-)
-
-# Get the image URLs
-    urls = dalle.get_urls()
-
-# Download the images to your specified folder
-    dalle.download(urls, "images/")
+if __name__ == "__main__":
+    kickoff()
