@@ -1,4 +1,4 @@
-# chatgpt-term
+# chat-term
 python script to run gpt inside bash/zsh terminal
 
 #README -- To run this python program you need to have the following modules installed either by pipx or your linux package manager:
