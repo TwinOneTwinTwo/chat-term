@@ -1,264 +1,264 @@
-#! /usr/bin/env python
-# README -- To run this python program you need to have the following modules installed:
-# 1.  Python 3.9 or higher
-# 2.  openai    #a python library for interfacing with the OpenAI API
-# 3.  pyfzf     #a python library for fuzzy searching
-# 4.  rich      #a pyton library for rich text and beautiful formatting
-# 5.  pyperclip #a python library for copy and pasting to clipboard
-# 6.  dotenv    #a python library for loading environment variables from .env file
-# 7.  sys       #a python library for system-specific parameters and functions
-# 8.  os        #a python library for interacting with the operating system
-# 9.  threading #a python library for threading
-# 10. time      #a python library for time
+# #! /usr/bin/env python
+# # README -- To run this python program you need to have the following modules installed:
+# # 1.  Python 3.9 or higher
+# # 2.  openai    #a python library for interfacing with the OpenAI API
+# # 3.  pyfzf     #a python library for fuzzy searching
+# # 4.  rich      #a pyton library for rich text and beautiful formatting
+# # 5.  pyperclip #a python library for copy and pasting to clipboard
+# # 6.  dotenv    #a python library for loading environment variables from .env file
+# # 7.  sys       #a python library for system-specific parameters and functions
+# # 8.  os        #a python library for interacting with the operating system
+# # 9.  threading #a python library for threading
+# # 10. time      #a python library for time
 
-import os
-import logging
-import sys
-import threading
-import time
-import pyperclip
-from openai import OpenAI
-from rich.console import Console
-from rich.panel import Panel
-from rich.markdown import Markdown
-from pyfzf import FzfPrompt
-
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-logging.info("OpenAI API Key: {0}".format(os.environ["OPENAI_API_KEY"]))
-
-console = Console()
-fzf = FzfPrompt()
-stop_animation_event = threading.Event()
-
-# Define cookie using env or empty string
-cookie = ""
-
-# Set up logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("chatgpt-term.log"), logging.StreamHandler()],
-)
+# import os
+# import logging
+# import sys
+# import threading
+# import time
+# import pyperclip
+# from openai import OpenAI
+# from rich.console import Console
+# from rich.panel import Panel
+# from rich.markdown import Markdown
+# from pyfzf import FzfPrompt
 
 
-# Ask which model to use
-def kickoff():
-    logging.info("Starting chatgpt-term.py")
-    while True:
-        try:
-            model_id = int(
-                input(
-                    "Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive' or (3) 'dall-e' : "
-                )
-            )
-            if model_id == 1:
-                model_id = "gpt-3.5-turbo-16k"
-                break
-            elif model_id == 2:
-                model_id = "gpt-4"
-                break
-            elif model_id == 3:
-                model_id = "dall-e-3"
-                break
-            else:
-                console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
-        except ValueError:
-            console.print("Invalid choice. Please enter a number.", style="bold red")
+# logging.info("OpenAI API Key: {0}".format(os.environ["OPENAI_API_KEY"]))
 
-    conversation = []
-    conversation.append({"role": "system", "content": "How may I help you?"})
+# console = Console()
+# fzf = FzfPrompt()
+# stop_animation_event = threading.Event()
 
-    # Generate initial response from the chosen model
-    if model_id == "dall-e-3":
-       pass
-    else:
-        conversation = chatGPT_conversation(model_id, conversation)
+# # Define cookie using env or empty string
+# cookie = ""
 
-    # Print the initial response
-    console.print(
-        "{0}: {1}\n".format(
-            conversation[-1]["role"].strip(), conversation[-1]["content"].strip()
-        ),
-        style="bold cyan",
-    )
+# # Set up logging
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s - %(levelname)s - %(message)s",
+#     handlers=[logging.FileHandler("chatgpt-term.log"), logging.StreamHandler()],
+# )
 
-    # Main interaction loop
-    while True:
-        # Prompt the user to choose an action
-        while True:
-            try:
-                action = int(
-                    input(
-                        "Do you want to (1) Enter multiline input, (2) Select a file or (3) Quit? "
-                    )
-                )
-                if action < 1 or action > 3:
-                    console.print(
-                        "Invalid choice. Please enter 1, 2, or 3.", style="bold red"
-                    )
-                else:
-                    break
-            except ValueError:
-                console.print("Invalid choice. Please enter a number.", style="bold red")
 
-        if action == 1:
-            prompt = ""
-            console.print(
-                f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red"
-            )
-            try:
-                while True:
-                    line = input()
-                    prompt += line + "\n"
-            except EOFError:
-                pass
+# # Ask which model to use
+# def kickoff():
+#     logging.info("Starting chatgpt-term.py")
+#     while True:
+#         try:
+#             model_id = int(
+#                 input(
+#                     "Enter the model to use (1) 'gpt-3.5-turbo-16k' or (2) 'gpt-4 --> slower & more expensive' or (3) 'dall-e' : "
+#                 )
+#             )
+#             if model_id == 1:
+#                 model_id = "gpt-3.5-turbo-16k"
+#                 break
+#             elif model_id == 2:
+#                 model_id = "gpt-4"
+#                 break
+#             elif model_id == 3:
+#                 model_id = "dall-e-3"
+#                 break
+#             else:
+#                 console.print("Invalid choice. Please enter 1 or 2 or 3.", style="bold red")
+#         except ValueError:
+#             console.print("Invalid choice. Please enter a number.", style="bold red")
 
-        elif action == 2:
-            # Prompt the user for a file pattern
-            pattern = get_file_pattern()
+#     conversation = []
+#     conversation.append({"role": "system", "content": "How may I help you?"})
 
-            console.print(
-                "Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ",
-                style="bold red",
-            )
-            file_path = select_file(pattern)
-            prompt = ""
+#     # Generate initial response from the chosen model
+#     if model_id == "dall-e-3":
+#        pass
+#     else:
+#         conversation = chatGPT_conversation(model_id, conversation)
 
-            if os.path.isfile(file_path):
-                with open(file_path, "r") as file:
-                    prompt = file.read()
-                if prompt == "":
-                    console.print("File content is empty.", style="bold red")
-            elif file_path != "":
-                console.print(f"Error: File {file_path} not found.", style="bold red")
-                continue
+#     # Print the initial response
+#     console.print(
+#         "{0}: {1}\n".format(
+#             conversation[-1]["role"].strip(), conversation[-1]["content"].strip()
+#         ),
+#         style="bold cyan",
+#     )
 
-        elif action == 3:
-            # Quit the program
-            console.print("Quitting program...", style="bold red")
-            break
+#     # Main interaction loop
+#     while True:
+#         # Prompt the user to choose an action
+#         while True:
+#             try:
+#                 action = int(
+#                     input(
+#                         "Do you want to (1) Enter multiline input, (2) Select a file or (3) Quit? "
+#                     )
+#                 )
+#                 if action < 1 or action > 3:
+#                     console.print(
+#                         "Invalid choice. Please enter 1, 2, or 3.", style="bold red"
+#                     )
+#                 else:
+#                     break
+#             except ValueError:
+#                 console.print("Invalid choice. Please enter a number.", style="bold red")
 
-        # Append user's input to the conversation list
-        conversation.append({"role": "user", "content": prompt})
+#         if action == 1:
+#             prompt = ""
+#             console.print(
+#                 f"Enter your query (Press Enter then 'Ctrl + D'): ", style="bold red"
+#             )
+#             try:
+#                 while True:
+#                     line = input()
+#                     prompt += line + "\n"
+#             except EOFError:
+#                 pass
 
-        # Initialize the hourglass animation
+#         elif action == 2:
+#             # Prompt the user for a file pattern
+#             pattern = get_file_pattern()
+
+#             console.print(
+#                 "Searching for Pattern. You can continue to filter search after fzf is up with inital returns. ",
+#                 style="bold red",
+#             )
+#             file_path = select_file(pattern)
+#             prompt = ""
+
+#             if os.path.isfile(file_path):
+#                 with open(file_path, "r") as file:
+#                     prompt = file.read()
+#                 if prompt == "":
+#                     console.print("File content is empty.", style="bold red")
+#             elif file_path != "":
+#                 console.print(f"Error: File {file_path} not found.", style="bold red")
+#                 continue
+
+#         elif action == 3:
+#             # Quit the program
+#             console.print("Quitting program...", style="bold red")
+#             break
+
+#         # Append user's input to the conversation list
+#         conversation.append({"role": "user", "content": prompt})
+
+#         # Initialize the hourglass animation
         
-        animation_thread = threading.Thread(target=hourglass_animation)
-        animation_thread.start()
+#         animation_thread = threading.Thread(target=hourglass_animation)
+#         animation_thread.start()
 
-        # Generate response from the OpenAI model
-        if model_id == "dall-e-3":
-            dalle_conversation(conversation)
-        else:
-            conversation = chatGPT_conversation(model_id, conversation)
+#         # Generate response from the OpenAI model
+#         if model_id == "dall-e-3":
+#             dalle_conversation(conversation)
+#         else:
+#             conversation = chatGPT_conversation(model_id, conversation)
 
-        # Stop the hourglass animation
-        stop_animation_event.set()
-        animation_thread.join()
+#         # Stop the hourglass animation
+#         stop_animation_event.set()
+#         animation_thread.join()
 
-        # Print the OpenAI response
-        console.print("OpenAI response:", style="bold yellow")
-        console.print(
-            Panel(
-                Markdown(f"{conversation[-1]['content'].strip()}\n"),
-                title="OpenAI Response",
-                border_style="bold cyan",
-            )
-        )
+#         # Print the OpenAI response
+#         console.print("OpenAI response:", style="bold yellow")
+#         console.print(
+#             Panel(
+#                 Markdown(f"{conversation[-1]['content'].strip()}\n"),
+#                 title="OpenAI Response",
+#                 border_style="bold cyan",
+#             )
+#         )
     
 
 
-# Display hourglass animation
-def hourglass_animation():
-    console.print("Searching for pattern in all directories...")
-    symbols = ["⌛", "⏳"]
-    while not stop_animation_event.is_set():
-        for symbol in symbols:
-            sys.stdout.write(f"\r{symbol} Awaiting response...")
-            sys.stdout.flush()
-            time.sleep(0.5)
+# # Display hourglass animation
+# def hourglass_animation():
+#     console.print("Searching for pattern in all directories...")
+#     symbols = ["⌛", "⏳"]
+#     while not stop_animation_event.is_set():
+#         for symbol in symbols:
+#             sys.stdout.write(f"\r{symbol} Awaiting response...")
+#             sys.stdout.flush()
+#             time.sleep(0.5)
 
 
-# Prompt user for a file pattern using fzf
-def get_file_pattern():
-    while True:
-        pattern = input("Enter a file pattern: ")
-        if pattern:
-            return pattern
+# # Prompt user for a file pattern using fzf
+# def get_file_pattern():
+#     while True:
+#         pattern = input("Enter a file pattern: ")
+#         if pattern:
+#             return pattern
 
 
-# Prompt user to select a file using fzf
-def select_file(pattern):
-    # Set the base_path to the user's home folder
-    base_path = os.path.expanduser("~")
+# # Prompt user to select a file using fzf
+# def select_file(pattern):
+#     # Set the base_path to the user's home folder
+#     base_path = os.path.expanduser("~")
 
-    # Recursively search for files in all directories matching the pattern
-    all_files = []
-    for root, dirs, files in os.walk(base_path):
-        for file in files:
-            if pattern in file:
-                all_files.append(os.path.join(root, file))
+#     # Recursively search for files in all directories matching the pattern
+#     all_files = []
+#     for root, dirs, files in os.walk(base_path):
+#         for file in files:
+#             if pattern in file:
+#                 all_files.append(os.path.join(root, file))
 
-    # Use fzf to select one of the files
-    selected_files = fzf.prompt(
-        all_files, "--preview 'ls -l {}' --preview-window up:50%:wrap"
-    )
+#     # Use fzf to select one of the files
+#     selected_files = fzf.prompt(
+#         all_files, "--preview 'ls -l {}' --preview-window up:50%:wrap"
+#     )
 
-    if not selected_files:
-        console.print("No file selected.", style="bold red")
-        return ""
+#     if not selected_files:
+#         console.print("No file selected.", style="bold red")
+#         return ""
 
-    file_path = selected_files[0]
+#     file_path = selected_files[0]
 
-    console.print("Selected file:")
-    console.print(Panel(file_path, title="File Path", border_style="bold cyan"))
+#     console.print("Selected file:")
+#     console.print(Panel(file_path, title="File Path", border_style="bold cyan"))
 
-    # Copy selected file path to clipboard
-    pyperclip.copy(file_path)
-    console.print("The file path has been copied to the clipboard.", style="bold cyan")
+#     # Copy selected file path to clipboard
+#     pyperclip.copy(file_path)
+#     console.print("The file path has been copied to the clipboard.", style="bold cyan")
 
-    # Print the selected file path and provide an opportunity for edits
-    while True:
-        file_path_edit = input(
-            "Edit file path if necessary, or press enter to confirm: "
-        ).strip()
-        if file_path_edit:
-            file_path = file_path_edit
-            break
-        elif pyperclip.paste():
-            file_path = pyperclip.paste().strip()
-            console.print(f"Using clipboard file path: {file_path}\n")
-            break
-        else:
-            break
+#     # Print the selected file path and provide an opportunity for edits
+#     while True:
+#         file_path_edit = input(
+#             "Edit file path if necessary, or press enter to confirm: "
+#         ).strip()
+#         if file_path_edit:
+#             file_path = file_path_edit
+#             break
+#         elif pyperclip.paste():
+#             file_path = pyperclip.paste().strip()
+#             console.print(f"Using clipboard file path: {file_path}\n")
+#             break
+#         else:
+#             break
 
-    return file_path
-
-
-# Generate chat response using OpenAI API
-def chatGPT_conversation(model_id, conversation):
-    # openai.api_key = os.getenv("OPENAI_API_KEY")
-    response = client.chat.completions.create(model=model_id, messages=conversation)
-    conversation.append(
-        {
-            "role": response.choices[0].message.role,
-            "content": response.choices[0].message.content,
-        }
-    )
-    return conversation
+#     return file_path
 
 
-def dalle_conversation(conversation):
-    img_params = {
-        "model": "dall-e-3",
-        "prompt": conversation[-1]["content"],
-        "user" : conversation[-1]["role"],
-        "size": "1024x1024",
-        "n": 1
-        }
-    res = client.images.generate(**img_params)
-    console.print(res.model_dump())
+# # Generate chat response using OpenAI API
+# def chatGPT_conversation(model_id, conversation):
+#     # openai.api_key = os.getenv("OPENAI_API_KEY")
+#     response = client.chat.completions.create(model=model_id, messages=conversation)
+#     conversation.append(
+#         {
+#             "role": response.choices[0].message.role,
+#             "content": response.choices[0].message.content,
+#         }
+#     )
+#     return conversation
 
 
-if __name__ == "__main__":
-    kickoff()
+# def dalle_conversation(conversation):
+#     img_params = {
+#         "model": "dall-e-3",
+#         "prompt": conversation[-1]["content"],
+#         "user" : conversation[-1]["role"],
+#         "size": "1024x1024",
+#         "n": 1
+#         }
+#     res = client.images.generate(**img_params)
+#     console.print(res.model_dump())
+
+
+# if __name__ == "__main__":
+#     kickoff()
