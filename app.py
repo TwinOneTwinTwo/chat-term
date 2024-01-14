@@ -38,12 +38,16 @@ def dalle_conversation(prom):
     return res.model_dump()
 
 def chatGPT_conversation(model, prom):
+    #set gpt-4 to preview
+    if(model == 'gpt-4'):
+        model = 'gpt-4-1106-preview'
     completion = client.chat.completions.create(
-  model=model,
-  messages=[
-    {"role": "system", "content": "You are a eager assistant, trying to relay the most pertainent information as quickly as possible."},
-    {"role": "user", "content": prom.strip()}
-  ]
-)
+        model=model,
+        messages=[
+                    {"role": "system", "content": "You are a professinal children's book proofreader, trying to maintain the author's voice as much as possible while also suggesting slight improvements in story telling and cleaning up any overt grammar and spelling mistake that don't interfere with character or narrator dialog."},
+                    {"role": "user", "content": prom.strip()}
+                ]
+    )
     return completion.model_dump()
 
+  
