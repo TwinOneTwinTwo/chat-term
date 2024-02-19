@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenAI API Form</title>
+    <title>Author Flow AI</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -13,10 +13,11 @@
         font-size: small;
     }
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-<script src="{{url_for('static', filename='tinymce/tinymce.min.js')}}"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/skins/ui/oxide/content.min.css" integrity="sha256-2O0twlBqGq0T3SxW56BBNI8yK6B9QjAzDQSDTIQ98rU=" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" integrity="sha256-UfCxRkwM6jyaUtWGMdTTGEdEXmMJo1FfCKQekJBSgHI=" crossorigin="anonymous"></script>
 <script>
     tinymce.init({
+      promotion:false,
       selector: "#editor",
       plugins: " anchor autocorrect autolink autosave casechange charmap checklist codesample  editimage emoticons export footnotes formatpainter help image insertdatetime link lists media mediaembed  nonbreaking pagebreak permanentpen powerpaste searchreplace table tableofcontents   typography visualblocks visualchars wordcount",
       toolbar: "myCustomToolbarButton |undo redo spellcheckdialog |blocks fontfamily fontsizeinput | bold italic underline forecolor backcolor | link image  | align lineheight bullist numlist | indent outdent | removeformat typography",
@@ -98,8 +99,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Chat-term-UI</h1>
-        <form>
+        <h1 style="text-align: center;">Author Flow UI</h1>
+        <!-- <form>
             <div class="mb-3">
                 <label for="modelSelect" class="form-label">Select Model:</label>
                 <select class="form-select" id="modelSelect" name="model">
@@ -127,9 +128,8 @@
             <section id="error-panel" style="display:none">
                 <div id="error">Something went wrong</div>
             </section>
-        </div>
+        </div> -->
         <div id="editor">
-            <p>Changed the content</p></div>
     </div>
 
     <!-- Modal -->
@@ -185,6 +185,35 @@
     </div>
 
     </div>
+    <script>
+      let tokenClient;
+      let accessToken = null;
+      let pickerInited = false;
+      let gisInited = false;
+
+      // Use the API Loader script to load google.picker
+      function onApiLoad() {
+        gapi.load('picker', onPickerApiLoad);
+      }
+
+      function onPickerApiLoad() {
+        pickerInited = true;
+      }
+
+      function gisLoaded() {
+        // TODO(developer): Replace with your client ID and required scopes.
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: '',
+          scope: 'https://www.googleapis.com/auth/drive',
+          callback: '', // defined later
+        });
+        gisInited = true;
+    }
+    </script>
+    <!-- Load the Google API Loader script. -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="onApiLoad()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

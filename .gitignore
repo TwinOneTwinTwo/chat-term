@@ -1,3 +1,6 @@
+g_cred.json
+templates/googlePickerExample.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
