@@ -2,6 +2,7 @@ g_cred.json
 desk_top.json
 token.json
 templates/googlePickerExample.html
+static/icons
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
