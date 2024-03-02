@@ -1,7 +1,10 @@
 import os
 import logging
+import json
 from flask import Flask, render_template, request
 from openai import OpenAI
+from pathlib import Path
+from google_service import GoogleService
 
 #globals
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
@@ -12,6 +15,42 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.get('/token')
+def token():
+   try:
+         if(not Path('token.json').exists()):
+             service = GoogleService()
+             service._authenticate()
+             
+         access  = json.load(Path('token.json').open('r'))
+         
+         return access["token"]
+         
+   except Exception as e:
+        print(f'An error occurred: {e}')
+        return None
+
+@app.get('/googleDocs')
+def googleDocs():
+    service = GoogleService()
+    result = service.get_google_docs()
+    if result:
+        return result
+    else:
+        return '{"error": "An error occurred"}'
+
+@app.post('/doc')
+def doc():
+    data = request.json
+    print(data)
+    doc_id = data['id']
+    service = GoogleService()
+    result = service.get_file(doc_id)
+    if result:
+        return result
+    else:
+        return '{"error": "An error occurred"}'
 
 @app.post('/prompt')
 def prompt():

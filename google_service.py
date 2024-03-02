@@ -1,5 +1,6 @@
 import os
 import io
+from pathlib import Path
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -19,8 +20,14 @@ class GoogleService:
         self._authenticate()
 
     def _authenticate(self):
-        if os.path.exists(self.token_file):
+        print(f'Authenticating with Google Drive')
+        if Path(self.token_file).exists():
+            print(f'Loading token file: {self.token_file}')
             self.creds = Credentials.from_authorized_user_file(self.token_file, SCOPES)
+        else:
+            print(f'Creating token file: {self.token_file}')
+            Path(self.token_file).touch(mode=0o777, exist_ok=True)
+
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
@@ -80,4 +87,10 @@ class GoogleService:
             print(f'An error occurred: {e}')
             return False 
  
-    
+    def get_google_docs(self):
+        try:
+            results = self.drive_service.files().list(fields="files(id, name, mimeType, hasThumbnail, thumbnailLink, iconLink)").execute()
+            return results
+        except Exception as e:
+            print(f'An error occurred: {e}')
+            return None
