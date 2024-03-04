@@ -10,32 +10,25 @@
       selector: "#editor",
       promotion:false,
       plugins: " anchor autolink autosave charmap codesample emoticons help image insertdatetime link lists media nonbreaking pagebreak searchreplace table visualblocks visualchars wordcount",
-      toolbar: "chatgptsidebar | googleDriveBtn |undo redo spellcheckdialog |blocks fontfamily fontsizeinput | bold italic underline forecolor backcolor | link image  | align lineheight bullist numlist | indent outdent | removeformat typography",
+      toolbar: "chatgptBtn | googleDriveBtn |undo redo spellcheckdialog |blocks fontfamily fontsizeinput | bold italic underline forecolor backcolor | link image  | align lineheight bullist numlist | indent outdent | removeformat typography",
       setup: (editor) => {
        
-
+        editor.ui.registry.addButton('chatgptBtn', {
+            icon: 'chatGPT',
+            tooltip: 'OpenAI Prompt',
+      onAction: () =>{
+                    let $chatgptpanel = $('#chatgptpanel');
+                    if($chatgptpanel.is(':hidden')){ $chatgptpanel.show().animate({width:'350px'}, 350)} 
+                        else{$chatgptpanel.animate({width:'0px'}, 350, ()=>{$chatgptpanel.hide()});}
+                    }
+        });
         editor.ui.registry.addButton('googleDriveBtn', {
             icon: 'google-drive',
             tooltip: 'Google Drive Picker',
       onAction: () => showGoogleModal()
         });
 
-        editor.ui.registry.addSidebar('chatgptsidebar', {
-        tooltip: 'Chat GPT-4',
-        icon: 'chatGPT',
-      onSetup: (api) => {
-        $(api.element()).load("{{url_for('static', filename='chat_sidebar.html')}}")
-        return () => {
-          console.log('Removing sidebar');
-        };
-      },
-      onShow: (api) => {
-        console.log('Show panel', api.element());
-      },
-      onHide: (api) => {
-        console.log('Hide panel', api.element());
-      }
-    });
+        
       },
       editable_root: true,
       height: '700px',
@@ -108,6 +101,13 @@
         color:darkslategray;
         font-size: small;
     }
+
+    .tox.tiny-mce{
+        position:absolute !important;
+        z-index: 10;
+        left:1px;
+        top:1px;
+    }
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
@@ -126,10 +126,31 @@
 </head>
 <body>
     <div class="container">
-        <h1>Chat-term-UI <i class="fas fa-cogs"></i></h1>
-        <div id="editor"></div>
-      
-        <div class="mt-4">
+        <h1>Auth-Flow-UI &nbsp; <i class="fas fa-keyboard"></i></h1>
+        <div style="position:relative; width:1050px;height: 700px">
+             <div style="position:absolute;z-index:1; width:1050px;height: 700px">
+                <div id="editor"></div>
+                </div>
+                <div id="chatgptpanel" style="overflow:hidden;display:none; position:absolute;z-index:100 ; width:0px !important;height: 700px;
+                 background-color: #ffffff; padding: 0 1rem;right:0px">
+                    
+                        <form>
+                            <div class="mb-3">
+                                <label for="promptInput" class="form-label">Prompt:</label>
+                                <input type="text" class="form-control" id="promptInput" placeholder="Enter your prompt">
+                            </div>
+                            <div class="mb-3">
+                                <label for="modelSelect" class="form-label">Model:</label>
+                                <select class="form-select" id="modelSelect">
+                                    <option value="dall-e">DALL-E</option>
+                                    <option value="gpt-3">GPT-3</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="submit-btn">Send Prompt</button>
+                            <button type="button" class="btn btn-secondary" id="clear-btn" style="display:none">Clear</button>
+                        </form>
+                   
+                <div class="mt-4">
             <h2>Results:</h2>
             <section id="dall-e-results-panel" style="display:none">
                 <textarea type="text" class="form-control" id="prompt-return" readonly="true" rows="3"></textarea>
