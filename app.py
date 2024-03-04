@@ -51,6 +51,19 @@ def doc():
         return result
     else:
         return '{"error": "An error occurred"}'
+    
+@app.post('/save')
+def save():
+    data = request.json
+    print(data)
+    doc_id = data['id']
+    content = data['content']
+    service = GoogleService()
+    result = service.save_file(doc_id, content)
+    if result:
+        return result
+    else:
+        return '{"error": "An error occurred"}'
 
 @app.post('/prompt')
 def prompt():

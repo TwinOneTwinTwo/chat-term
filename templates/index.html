@@ -2,38 +2,40 @@
 <html>
 <head>
     <title>Author Flow UI</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<!-- start with tinymce-->
+    <script src="{{url_for('static', filename='tinymce/tinymce.min.js')}}"></script>
     
-    
-<style>
-    textarea{
-        font-family: 'Roboto', sans-serif;
-        color:darkslategray;
-        font-size: small;
-    }
-</style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-<script src="{{url_for('static', filename='tinymce/tinymce.min.js')}}"></script>
 <script>
     tinymce.init({
       selector: "#editor",
       promotion:false,
       plugins: " anchor autolink autosave charmap codesample emoticons help image insertdatetime link lists media nonbreaking pagebreak searchreplace table visualblocks visualchars wordcount",
-      toolbar: "chatGptBtn | googleDriveBtn |undo redo spellcheckdialog |blocks fontfamily fontsizeinput | bold italic underline forecolor backcolor | link image  | align lineheight bullist numlist | indent outdent | removeformat typography",
+      toolbar: "chatgptsidebar | googleDriveBtn |undo redo spellcheckdialog |blocks fontfamily fontsizeinput | bold italic underline forecolor backcolor | link image  | align lineheight bullist numlist | indent outdent | removeformat typography",
       setup: (editor) => {
-       editor.ui.registry.addButton('chatGptBtn', {
-            icon: 'chatGPT',
-            tooltip: 'Chat GPT-4',
-      onAction: () => alert('Button clicked!')
-        });
+       
 
         editor.ui.registry.addButton('googleDriveBtn', {
             icon: 'google-drive',
             tooltip: 'Google Drive Picker',
       onAction: () => showGoogleModal()
         });
+
+        editor.ui.registry.addSidebar('chatgptsidebar', {
+        tooltip: 'Chat GPT-4',
+        icon: 'chatGPT',
+      onSetup: (api) => {
+        $(api.element()).load("{{url_for('static', filename='chat_sidebar.html')}}")
+        return () => {
+          console.log('Removing sidebar');
+        };
+      },
+      onShow: (api) => {
+        console.log('Show panel', api.element());
+      },
+      onHide: (api) => {
+        console.log('Hide panel', api.element());
+      }
+    });
       },
       editable_root: true,
       height: '700px',
@@ -92,6 +94,23 @@
       `,
     });
   </script>
+  <!-- finish with tinymce-->
+  <link rel="stylesheet" href="{{url_for('static', filename='js/bootstrap/css/bootstrap.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='js/bootstrap/css/bootstrap-reboot.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='js/bootstrap/css/bootstrap-utilities.min.css')}}">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+<style>
+    textarea{
+        font-family: 'Roboto', sans-serif;
+        color:darkslategray;
+        font-size: small;
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
   <style>
     body {
       margin: 4rem auto;
@@ -107,24 +126,9 @@
 </head>
 <body>
     <div class="container">
-        <h1>Chat-term-UI</h1>
+        <h1>Chat-term-UI <i class="fas fa-cogs"></i></h1>
         <div id="editor"></div>
-        <form>
-            <div class="mb-3">
-                <label for="modelSelect" class="form-label">Select Model:</label>
-                <select class="form-select" id="modelSelect" name="model">
-                    <option value="gpt-4">GPT 4</option>
-                    <option value="gpt-3.5-turbo">GPT 3.5 Turbo</option>
-                    <option value="dall-e">Dall E</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="promptInput" class="form-label">Enter Prompt:</label>
-                <input type="text" class="form-control" id="promptInput" name="prompt">
-            </div>
-            <button  id="submit-btn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">Submit</button>
-            <button  id="clear-btn" class="btn btn-danger" style="display:none">Clear</button>
-        </form>
+      
         <div class="mt-4">
             <h2>Results:</h2>
             <section id="dall-e-results-panel" style="display:none">
@@ -211,10 +215,11 @@
     </div>
 
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
+    <script src="{{url_for('static', filename='js/bootstrap/js/bootstrap.min.js')}}"></script>
     <!-- base app script-->
     <script>
+    let currDocId = null;
     $("#submit-btn").click(submitPrompt);
 
 function sendPrompt(prompt) {
@@ -291,6 +296,8 @@ function showGoogleModal() {
 }
 
 function selectDoc(id) {
+    //set current doc id
+    currDocId = id;
     $('#googleDocsModal').modal('hide');
     fetch('/doc', {
         method: 'POST',
@@ -305,6 +312,23 @@ function selectDoc(id) {
     }).catch(error => {
         console.error('Error:', error);
     });
+}
+
+//update doc
+function updateDoc() {
+    if(currDocId){
+        fetch('/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id: currDocId, content: tinymce.activeEditor.getContent()})
+        }).then(response => response.text()).then(res => {
+            console.log(res);
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    }
 }
    </script>
 </body>
