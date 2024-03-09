@@ -6,6 +6,11 @@ from openai import OpenAI
 from pathlib import Path
 from google_service import GoogleService
 
+
+
+
+
+
 #globals
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 

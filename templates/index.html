@@ -135,6 +135,19 @@
                  background-color: #ffffff; padding: 0 1rem;right:0px">
                     
                         <form>
+                            <!-- navs-->
+                            <ul class="nav nav-pills">
+                                <li class="nav-item">
+                                  <a id="prompt-tab" class="nav-link active" aria-current="page"  data-bs-toggle="pill" 
+                                  data-bs-target="#prompt-panel" type="button" role="tab" aria-controls="prompt-panel" aria-selected="true"><i class="far fa-comment-alt"></i>&nbsp;Prompt&nbsp;</a>
+                                </li>
+                                <li class="nav-item">
+                                  <a id="settings-tab" class="nav-link" aria-current="page"  data-bs-toggle="pill" 
+                                  data-bs-target="#settings-panel" type="button" role="tab" aria-controls="settings-panel" aria-selected="false"><i class="fas fa-cogs"></i>&nbsp;Settings&nbsp;</a></i>
+                                </li>
+                              </ul>
+                              <div class="tab-content" id="pills-content" style="padding:1.5rem 0rem; margin: 1px 0px"><!--start pills content -->
+                                <div class="tab-pane fade show active" id="prompt-panel" aria-labelledby="prompt-tab" role="tabpanel">
                             <div class="mb-3">
                                 <label for="promptInput" class="form-label">Prompt:</label>
                                 <input type="text" class="form-control" id="promptInput" placeholder="Enter your prompt">
@@ -143,11 +156,31 @@
                                 <label for="modelSelect" class="form-label">Model:</label>
                                 <select class="form-select" id="modelSelect">
                                     <option value="dall-e">DALL-E</option>
-                                    <option value="gpt-3">GPT-3</option>
+                                    <option value="gpt-3-turbo">GPT-3</option>
+                                    <option value="gpt-4-turbo-preview">GPT-4</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="submit-btn">Send Prompt</button>
-                            <button type="button" class="btn btn-secondary" id="clear-btn" style="display:none">Clear</button>
+                           
+                            </div>
+                            <div class="tab-pane fade" id="settings-panel" aria-labelledby="settings-tab" role="tabpanel">
+                                <section id="system-input-section" style="padding: 0.5rem; margin:1rem 0px; border:1px solid silver;">
+                                    <div class="mb-3">
+                                        <label for="systemInput" class="form-label">System:</label>
+                                        <textarea type="text" class="form-control" id="systemInput" placeholder="Enter your system info"></textarea>
+                                    </div>
+                                    
+                                </section>
+                                <section id="user-input-section" style="padding: 0.5rem; margin:1rem 0px;border:1px solid silver;">
+                                    <div class="mb-3">
+                                        <label for="userInput" class="form-label">User:</label>
+                                        <textarea type="text" class="form-control" id="userInput" placeholder="Enter your User info"></textarea>
+                                    </div>
+                                    
+                                </section>
+                            </div>
+                        </div><!-- end pills-content-->
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Send Prompt</button>
+                        <button type="button" class="btn btn-secondary" id="clear-btn" style="display:none">Clear</button>
                         </form>
                    
                 <div class="mt-4">
